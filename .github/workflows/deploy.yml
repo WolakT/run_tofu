@@ -1,0 +1,54 @@
+name: Deploy OpenTofu to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}'
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+      - name: Extract Tag
+        id: vars
+        run: echo "tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker image
+        run: |
+          IMAGE="europe-west1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ secrets.GCP_AR_REPO }}/run-tofu-api:${{ steps.vars.outputs.tag }}"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+
+      - name: OpenTofu Init
+        run: tofu init
+        working-directory: ./infra/iac
+
+      - name: OpenTofu Apply
+        run: tofu apply -auto-approve -var="image=${{ env.IMAGE_URL }}" -var="project_id=${{ secrets.GCP_PROJECT }}" -var="github_repository=${{ github.repository }}"
+        working-directory: ./infra/iac
