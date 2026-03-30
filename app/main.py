@@ -8,7 +8,7 @@ def read_root():
     # Example to prove the service is running, optionally reading from an env variable
     project_env = os.getenv("GOOGLE_CLOUD_PROJECT", "unknown")
     return {
-        "message": "Hello from OpenTofu deployed Cloud Run!",
+        "message": "Hello from OpenTofu deployed Cloud Run v2!",
         "project": project_env
     }
 
