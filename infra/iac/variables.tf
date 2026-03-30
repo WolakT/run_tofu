@@ -22,8 +22,3 @@ variable "service_name" {
   default     = "run-tofu-api"
 }
 
-variable "image" {
-  description = "The container image to deploy. Defaults to a placeholder until overridden by GitHub Actions."
-  type        = string
-  default     = "us-docker.pkg.dev/cloudrun/container/hello"
-}

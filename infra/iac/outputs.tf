@@ -1,5 +1,9 @@
-output "service_url" {
-  value = google_cloud_run_v2_service.api.uri
+output "dev_service_url" {
+  value = module.worker_dev.service_url
+}
+
+output "live_service_url" {
+  value = module.worker_live.service_url
 }
 
 output "workload_identity_provider" {

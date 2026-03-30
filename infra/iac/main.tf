@@ -59,29 +59,3 @@ resource "google_project_iam_member" "github_actions_sa_user" {
   member  = "serviceAccount:${google_service_account.github_actions_sa.email}"
 }
 
-resource "google_cloud_run_v2_service" "api" {
-  name     = var.service_name
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 1
-    }
-    containers {
-      image = var.image
-      ports {
-        container_port = 8080
-      }
-    }
-  }
-}
-
-resource "google_cloud_run_v2_service_iam_member" "public_access" {
-  project  = var.project_id
-  location = google_cloud_run_v2_service.api.location
-  name     = google_cloud_run_v2_service.api.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
