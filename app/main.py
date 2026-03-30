@@ -5,7 +5,7 @@ app = FastAPI(title="Run Tofu FastAPI Service")
 
 @app.get("/")
 def read_root():
-    # Example to prove the service is running optionally reading from an env variable
+    # Example to prove the service is running, optionally reading from an env variable
     project_env = os.getenv("GOOGLE_CLOUD_PROJECT", "unknown")
     return {
         "message": "Hello from OpenTofu deployed Cloud Run!",
