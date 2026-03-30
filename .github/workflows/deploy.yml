@@ -37,7 +37,17 @@ jobs:
         id: vars
         run: echo "tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
+      - name: Check for app changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            app:
+              - 'app/**'
+              - 'Dockerfile'
+
       - name: Build and Push Docker image
+        if: steps.changes.outputs.app == 'true'
         run: |
           PROJECT_LOWER=$(echo "${{ env.GCP_PROJECT }}" | tr '[:upper:]' '[:lower:]')
           REPO_LOWER=$(echo "${{ secrets.GCP_AR_REPO }}" | tr '[:upper:]' '[:lower:]')
@@ -49,6 +59,7 @@ jobs:
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
 
       - name: Update dev.tf with new image tag
+        if: steps.changes.outputs.app == 'true'
         run: |
           sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/dev.tf
           git config --global user.name "github-actions[bot]"
@@ -66,10 +77,12 @@ jobs:
         working-directory: ./infra/iac
 
       - name: Update live.tf for PR
+        if: steps.changes.outputs.app == 'true'
         run: |
           sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/live.tf
 
       - name: Create Pull Request for Live Promotion
+        if: steps.changes.outputs.app == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "Promote dev image to live (${{ steps.vars.outputs.tag }})"
@@ -77,3 +90,4 @@ jobs:
           title: "🚀 Promote image to Live: ${{ steps.vars.outputs.tag }}"
           body: "Automatically generated PR to promote the newly built Dev image to the Live environment. Merge this PR to trigger the live deployment."
           base: main
+          add-paths: infra/iac/live.tf
