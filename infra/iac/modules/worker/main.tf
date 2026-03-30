@@ -17,7 +17,7 @@ variable "image" {
 resource "google_cloud_run_v2_service" "api" {
   name     = var.service_name
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     scaling {
@@ -33,13 +33,6 @@ resource "google_cloud_run_v2_service" "api" {
   }
 }
 
-resource "google_cloud_run_v2_service_iam_member" "public_access" {
-  project  = var.project_id
-  location = google_cloud_run_v2_service.api.location
-  name     = google_cloud_run_v2_service.api.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
 
 output "service_url" {
   value = google_cloud_run_v2_service.api.uri
