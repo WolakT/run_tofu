@@ -38,7 +38,9 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          IMAGE="europe-west1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ secrets.GCP_AR_REPO }}/run-tofu-api:${{ steps.vars.outputs.tag }}"
+          PROJECT_LOWER=$(echo "${{ env.GCP_PROJECT }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${{ secrets.GCP_AR_REPO }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="europe-west1-docker.pkg.dev/$PROJECT_LOWER/$REPO_LOWER/run-tofu-api:${{ steps.vars.outputs.tag }}"
           docker build -t $IMAGE .
           docker push $IMAGE
           echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
