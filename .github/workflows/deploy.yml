@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: 'write'
       id-token: 'write'
+      pull-requests: 'write'
 
     steps:
       - name: Checkout repository
@@ -55,6 +56,19 @@ jobs:
           git add infra/iac/dev.tf
           git commit -m "Deploy dev environment to sha ${{ steps.vars.outputs.tag }} [skip ci]" || echo "No changes to commit"
           git push
+
+      - name: Update live.tf for PR
+        run: |
+          sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/live.tf
+
+      - name: Create Pull Request for Live Promotion
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Promote dev image to live (${{ steps.vars.outputs.tag }})"
+          branch: "promote-live-${{ steps.vars.outputs.tag }}"
+          title: "🚀 Promote image to Live: ${{ steps.vars.outputs.tag }}"
+          body: "Automatically generated PR to promote the newly built Dev image to the Live environment. Merge this PR to trigger the live deployment."
+          base: main
 
       - name: OpenTofu Init
         run: tofu init
