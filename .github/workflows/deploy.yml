@@ -30,9 +30,6 @@ jobs:
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-
       - name: Extract Tag
         id: vars
         run: echo "tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
@@ -45,6 +42,10 @@ jobs:
             app:
               - 'app/**'
               - 'Dockerfile'
+
+      - name: Configure Docker
+        if: steps.changes.outputs.app == 'true'
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
       - name: Build and Push Docker image
         if: steps.changes.outputs.app == 'true'
