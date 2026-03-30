@@ -3,5 +3,5 @@ module "worker_dev" {
   service_name = "${var.service_name}-dev"
   region       = var.region
   project_id   = var.project_id
-  image        = "europe-west1-docker.pkg.dev/emphasaize/run-tofu-api-repo/run-tofu-api:fedd1d47"
+  image        = "europe-west1-docker.pkg.dev/emphasaize/run-tofu-api-repo/run-tofu-api:0f693f0f"
 }
