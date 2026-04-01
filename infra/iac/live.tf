@@ -11,6 +11,6 @@ module "workflow_live" {
   workflow_name    = "run-tofu-workflow-live"
   region           = var.region
   project_id       = var.project_id
-  workflow_version = "66f5707f"
+  workflow_version = "296c1f55"
   environment      = "live"
 }
