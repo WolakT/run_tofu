@@ -59,3 +59,15 @@ resource "google_project_iam_member" "github_actions_sa_user" {
   member  = "serviceAccount:${google_service_account.github_actions_sa.email}"
 }
 
+resource "google_project_service" "workflows" {
+  project            = var.project_id
+  service            = "workflows.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "iam" {
+  project            = var.project_id
+  service            = "iam.googleapis.com"
+  disable_on_destroy = false
+}
+

@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -34,7 +36,7 @@ jobs:
         id: vars
         run: echo "tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-      - name: Check for app changes
+      - name: Check for changes
         uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -42,32 +44,40 @@ jobs:
             app:
               - 'app/**'
               - 'Dockerfile'
+            workflows:
+              - 'infra/workflows/**'
 
-#      - name: Configure Docker
-#        if: steps.changes.outputs.app == 'true'
-#        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+      - name: Configure Docker
+        if: steps.changes.outputs.app == 'true'
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
-#      - name: Build and Push Docker image
-#        if: steps.changes.outputs.app == 'true'
-#        run: |
-#          PROJECT_LOWER=$(echo "${{ env.GCP_PROJECT }}" | tr '[:upper:]' '[:lower:]')
-#          REPO_LOWER=$(echo "${{ secrets.GCP_AR_REPO }}" | tr '[:upper:]' '[:lower:]')
-#          IMAGE="europe-west1-docker.pkg.dev/$PROJECT_LOWER/$REPO_LOWER/run-tofu-api:${{ steps.vars.outputs.tag }}"
-#          docker build -t $IMAGE .
-#          docker push $IMAGE
-#          echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
-#        env:
-#          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      - name: Build and Push Docker image
+        if: steps.changes.outputs.app == 'true'
+        run: |
+          PROJECT_LOWER=$(echo "${{ env.GCP_PROJECT }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${{ secrets.GCP_AR_REPO }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="europe-west1-docker.pkg.dev/$PROJECT_LOWER/$REPO_LOWER/run-tofu-api:${{ steps.vars.outputs.tag }}"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
 
-#      - name: Update dev.tf with new image tag
-#        if: steps.changes.outputs.app == 'true'
-#        run: |
-#          sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/dev.tf
-#          git config --global user.name "github-actions[bot]"
-#          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-#          git add infra/iac/dev.tf
-#          git commit -m "Deploy dev environment to sha ${{ steps.vars.outputs.tag }} [skip ci]" || echo "No changes to commit"
-#          git push
+      - name: Update dev.tf with new versions
+        if: steps.changes.outputs.app == 'true' || steps.changes.outputs.workflows == 'true'
+        run: |
+          if [ "${{ steps.changes.outputs.app }}" == "true" ]; then
+            sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/dev.tf
+          fi
+          if [ "${{ steps.changes.outputs.workflows }}" == "true" ]; then
+            sed -i "s|version[[:space:]]*=[[:space:]]*\".*\"|version        = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/dev.tf
+          fi
+          
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add infra/iac/dev.tf
+          git commit -m "Deploy dev environment to sha ${{ steps.vars.outputs.tag }} [skip ci]" || echo "No changes to commit"
+          git push
 
       - name: OpenTofu Init
         run: tofu init
@@ -77,18 +87,23 @@ jobs:
         run: tofu apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT }}" -var="github_repository=${{ github.repository }}"
         working-directory: ./infra/iac
 
-#      - name: Update live.tf for PR
-#        if: steps.changes.outputs.app == 'true'
-#        run: |
-#          sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/live.tf
+      - name: Update live.tf for PR
+        if: steps.changes.outputs.app == 'true' || steps.changes.outputs.workflows == 'true'
+        run: |
+          if [ "${{ steps.changes.outputs.app }}" == "true" ]; then
+            sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/live.tf
+          fi
+          if [ "${{ steps.changes.outputs.workflows }}" == "true" ]; then
+            sed -i "s|version[[:space:]]*=[[:space:]]*\".*\"|version        = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/live.tf
+          fi
 
-#      - name: Create Pull Request for Live Promotion
-#        if: steps.changes.outputs.app == 'true'
-#        uses: peter-evans/create-pull-request@v6
-#        with:
-#          commit-message: "Promote dev image to live (${{ steps.vars.outputs.tag }})"
-#          branch: "promote-live-${{ steps.vars.outputs.tag }}"
-#          title: "🚀 Promote image to Live: ${{ steps.vars.outputs.tag }}"
-#          body: "Automatically generated PR to promote the newly built Dev image to the Live environment. Merge this PR to trigger the live deployment."
-#          base: main
-#          add-paths: infra/iac/live.tf
+      - name: Create Pull Request for Live Promotion
+        if: steps.changes.outputs.app == 'true' || steps.changes.outputs.workflows == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Promote dev versions to live (${{ steps.vars.outputs.tag }})"
+          branch: "promote-live-${{ steps.vars.outputs.tag }}"
+          title: "🚀 Promote to Live: ${{ steps.vars.outputs.tag }}"
+          body: "Automatically generated PR to promote newly built Dev versions (App/Workflows) to the Live environment. Merge this PR to trigger the live deployment."
+          base: main
+          add-paths: infra/iac/live.tf

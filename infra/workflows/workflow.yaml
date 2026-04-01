@@ -1,0 +1,17 @@
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+          - config: ${args.config}
+    - log_start:
+        call: sys.log
+        args:
+          text: ${"Starting workflow in project " + project_id}
+    - echo_config:
+        call: sys.log
+        args:
+          text: ${"Config value message -> " + config.message}
+    - finish:
+        return: "Workflow completed successfully"
