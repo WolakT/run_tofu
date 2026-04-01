@@ -14,4 +14,4 @@ main:
         args:
           text: ${"Config value message -> " + config.message}
     - finish:
-        return: "Workflow completed successfully"
+        return: ${"Workflow completed successfully from " + config.environment}
