@@ -7,10 +7,10 @@ module "worker_dev" {
 }
 
 module "workflow_dev" {
-  source        = "./modules/workflow"
-  workflow_name = "run-tofu-workflow-dev"
-  region        = var.region
-  project_id    = var.project_id
-  version       = "e2feee3c"
-  environment   = "dev"
+  source           = "./modules/workflow"
+  workflow_name    = "run-tofu-workflow-dev"
+  region           = var.region
+  project_id       = var.project_id
+  workflow_version = "e2feee3c"
+  environment      = "dev"
 }

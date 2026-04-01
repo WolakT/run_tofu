@@ -7,10 +7,10 @@ module "worker_live" {
 }
 
 module "workflow_live" {
-  source        = "./modules/workflow"
-  workflow_name = "run-tofu-workflow-live"
-  region        = var.region
-  project_id    = var.project_id
-  version       = "66f5707f"
-  environment   = "live"
+  source           = "./modules/workflow"
+  workflow_name    = "run-tofu-workflow-live"
+  region           = var.region
+  project_id       = var.project_id
+  workflow_version = "66f5707f"
+  environment      = "live"
 }
