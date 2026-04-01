@@ -70,7 +70,7 @@ jobs:
             sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/dev.tf
           fi
           if [ "${{ steps.changes.outputs.workflows }}" == "true" ]; then
-            sed -i "s|version[[:space:]]*=[[:space:]]*\".*\"|version        = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/dev.tf
+            sed -i "s|workflow_version[[:space:]]*=[[:space:]]*\".*\"|workflow_version = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/dev.tf
           fi
           
           git config --global user.name "github-actions[bot]"
@@ -94,7 +94,7 @@ jobs:
             sed -i "s|image[[:space:]]*=[[:space:]]*\".*\"|image        = \"${{ env.IMAGE_URL }}\"|g" infra/iac/live.tf
           fi
           if [ "${{ steps.changes.outputs.workflows }}" == "true" ]; then
-            sed -i "s|version[[:space:]]*=[[:space:]]*\".*\"|version        = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/live.tf
+            sed -i "s|workflow_version[[:space:]]*=[[:space:]]*\".*\"|workflow_version = \"${{ steps.vars.outputs.tag }}\"|g" infra/iac/live.tf
           fi
 
       - name: Create Pull Request for Live Promotion

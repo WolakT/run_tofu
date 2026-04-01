@@ -10,7 +10,7 @@ variable "project_id" {
   type = string
 }
 
-variable "version" {
+variable "workflow_version" {
   type = string
 }
 
@@ -19,14 +19,14 @@ variable "environment" {
 }
 
 data "external" "workflow_data" {
-  program = ["python3", "${path.module}/../../../infra/workflows/fetch_workflow.py", var.version, var.environment]
+  program = ["python3", "${path.module}/../../../infra/workflows/fetch_workflow.py", var.workflow_version, var.environment]
 }
 
 resource "google_workflows_workflow" "default" {
   name            = var.workflow_name
   region          = var.region
   project         = var.project_id
-  description     = "GCP Workflow for ${var.environment} (version: ${var.version})"
+  description     = "GCP Workflow for ${var.environment} (version: ${var.workflow_version})"
   source_contents = data.external.workflow_data.result.source_contents
 }
 
