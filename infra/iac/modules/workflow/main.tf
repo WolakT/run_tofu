@@ -19,7 +19,7 @@ variable "environment" {
 }
 
 data "external" "workflow_data" {
-  program = ["python3", "${path.module}/../../../infra/workflows/fetch_workflow.py", var.workflow_version, var.environment]
+  program = ["python3", "${path.module}/../../../../infra/workflows/fetch_workflow.py", var.workflow_version, var.environment]
 }
 
 resource "google_workflows_workflow" "default" {
