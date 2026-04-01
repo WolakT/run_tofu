@@ -3,18 +3,26 @@ import sys
 import json
 import os
 
-def get_git_content(sha, path):
+# Get the directory where the script is located
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+# Repo root is one level up from infra/workflows/
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../"))
+
+def get_git_content(sha, relative_path):
+    # The actual file on disk
+    full_path = os.path.join(REPO_ROOT, relative_path)
     try:
         if sha == "latest" or sha == "current":
-            with open(path, 'r') as f:
+            with open(full_path, 'r') as f:
                 return f.read()
-        return subprocess.check_output(['git', 'show', f'{sha}:{path}'], stderr=subprocess.PIPE).decode('utf-8')
+        # For git show, we use the relative path from repo root
+        return subprocess.check_output(['git', 'show', f'{sha}:{relative_path}'], cwd=REPO_ROOT, stderr=subprocess.PIPE).decode('utf-8')
     except Exception as e:
         # Fallback to local file if SHA not found (useful for local testing)
-        if os.path.exists(path):
-            with open(path, 'r') as f:
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as f:
                 return f.read()
-        raise e
+        raise Exception(f"Failed to fetch {relative_path} at SHA {sha}. Error: {str(e)}")
 
 def main():
     if len(sys.argv) < 3:
@@ -24,36 +32,21 @@ def main():
     sha = sys.argv[1]
     env = sys.argv[2]
     
-    workflow_path = "infra/workflows/workflow.yaml"
-    config_path = "infra/workflows/config.json"
+    workflow_rel_path = "infra/workflows/workflow.yaml"
+    config_rel_path = "infra/workflows/config.json"
 
     try:
-        workflow_content = get_git_content(sha, workflow_path)
-        config_content = get_git_content(sha, config_path)
+        workflow_content = get_git_content(sha, workflow_rel_path)
+        config_content = get_git_content(sha, config_rel_path)
         
         # Inject environment variable into config
         config_content = config_content.replace("${ENVIRONMENT}", env)
         
-        # We can also inject config into workflow if needed, 
-        # but here we'll just pass the workflow content.
-        # The config is often passed as a runtime argument to the workflow, 
-        # or we can embed it. Let's embed it for simplicity as per requirements.
-        
-        # If we wanted to embed the config as a block in YAML:
-        # (This is just an example of "injection")
-        rendered_workflow = workflow_content.replace("${CONFIG_JSON}", config_content)
-
-        # However, it's cleaner to let the user define how to use the config.
-        # Given the requirements "json file with some env specific configuration... injected",
-        # I'll just return the rendered workflow.
-        
-        # Let's assume the workflow.yaml expects a config block.
-        # But wait, workflows can take runtime arguments. 
-        # If the user wants it "injected before pushing", embedding is the way.
-        
-        # For now, I'll just return the source_contents.
+        # In this implementation, we just return the raw content and the config.
+        # The workflow logic can decide how to use the config (e.g. passed at runtime).
         print(json.dumps({"source_contents": workflow_content, "config": config_content}))
     except Exception as e:
+        # Crucial: return a JSON error so Terraform data "external" can report it
         print(json.dumps({"error": str(e)}))
         sys.exit(1)
 
